@@ -1,7 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 #system("openvpn --genkey --secret openvpn_key.key;done")
-system("if [ ! -e id_rsa ]; then ssh-keygen -f ./id_rsa  -N ''; fi ;")
+system("if [ ! -e files/id_rsa ]; then ssh-keygen -f ./files/id_rsa  -N ''; fi ;")
 #puts system(`pwd`)
 $init_script = <<-SHELL
 export DEBIAN_FRONTEND=noninteractive;
@@ -15,27 +15,23 @@ chmod 600 /root/.ssh/id_rsa
 chmod 700 /root/.ssh
 cat /root/.ssh/id_rsa.pub > /root/.ssh/authorized_keys
 SHELL
-$init_script= <<-SHELL
-echo "init_script"
-SHELL
+
 $custom_client = <<-SHELL
 cp /vagrant/client.conf /etc/openvpn/
 sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $NF}')"'/' /etc/openvpn/client.conf
 systemctl daemon-reload 
 SHELL
-$custom_client = <<-SHELL
-echo "custom_client"
-SHELL
+
 $custom_server = <<-SHELL
 cp /vagrant/server.conf /etc/openvpn/
 sed -i -e 's/_IP_/'"$(hostname -I | awk '{print $NF}')"'/' /etc/openvpn/server.conf
 systemctl daemon-reload 
 cd /usr/share/easy-rsa/ && . vars && ./clean-all && ln -s openssl-1.0.0.cnf openssl.cnf \
   && ./build-dh && ./pkitool --initca && ./pkitool --server vpn-hub
+
+cp /usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,vpn-hub.{crt,key}} /etc/openvpn/
 SHELL
-$custom_server = <<-SHELL
-echo "custom_server"
-SHELL
+
 vm_box ="debian/stretch64"
 Vagrant.configure("2") do |config|
   config.vm.define "vpn-hub" do |vpn|
@@ -53,11 +49,13 @@ Vagrant.configure("2") do |config|
     vpn.vm.provision "init_script",
       type:"shell", 
       preserve_order:true, 
-      inline:$init_script
+      inline:$init_script,
+      run: "once"
     vpn.vm.provision "custom_server", 
       type:"shell",
       preserve_order:true,
-      inline:$custom_server
+      inline:$custom_server,
+      run: "once"
   end
   
 
@@ -76,11 +74,13 @@ Vagrant.configure("2") do |config|
     site1.vm.provision "init_script",
       type:"shell", 
       preserve_order:true, 
-      inline: $init_script
+      inline: $init_script,
+      run: "once"
     site1.vm.provision "custom_client", 
       type:"shell",
       preserve_order:true,
-      inline: $custom_client
+      inline: $custom_client,
+      run: "once"
   end
   
   config.vm.define "site-2" do |site2|
@@ -95,8 +95,8 @@ Vagrant.configure("2") do |config|
       vbox_conf.customize ["storageattach", :id, "--storagectl", "SATA Controller", "--port", "0", "--device", "0", "--nonrotational", "on"]
       vbox_conf.customize ["modifyvm",:id,"--groups","/ospf-over-openvpn"]
     end
-    site2.vm.provision "shell", inline: $init_script
-    site2.vm.provision "shell", inline: $custom_client
+    site2.vm.provision "shell", inline: $init_script, run: "once"
+    site2.vm.provision "shell", inline: $custom_client, run: "once"
   end
 
     config.vm.define "client" do |client|
@@ -111,8 +111,8 @@ Vagrant.configure("2") do |config|
       vbox_conf.customize ["storageattach", :id, "--storagectl", "SATA Controller", "--port", "0", "--device", "0", "--nonrotational", "on"]
       vbox_conf.customize ["modifyvm",:id,"--groups","/ospf-over-openvpn"]
     end
-    client.vm.provision "shell", inline: $init_script
-    client.vm.provision "shell", inline: $custom_client
+    client.vm.provision "shell", inline: $init_script, run: "once"
+    client.vm.provision "shell", inline: $custom_client, run: "once"
   end
 
 

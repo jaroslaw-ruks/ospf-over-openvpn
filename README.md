@@ -8,5 +8,5 @@ without passing traffic. More generic and autodetec configuration then better :)
 
 ## Network Schema
 
-![alt Network_Schema.dia](Network_Schema.png)
+![alt pic/Network_Schema.dia](pic/Network_Schema.png)
 
