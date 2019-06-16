@@ -1,35 +1,45 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 #system("openvpn --genkey --secret openvpn_key.key;done")
-system("if [ ! -e files/id_rsa ]; then ssh-keygen -f ./files/id_rsa  -N ''; fi ;")
+system("if [ ! -e ./files/id_rsa ]; then ssh-keygen -f ./files/id_rsa  -N ''; fi ;")
 #puts system(`pwd`)
 $init_script = <<-SHELL
 export DEBIAN_FRONTEND=noninteractive;
 apt-get update;
-apt-get install tcpdump vim openvpn -y
-cp /vagrant/openvpn_key.key /etc/openvpn/
+apt-get install tcpdump=4.9.2-1~deb9u1 vim=2:8.0.0197-4+deb9u1 openvpn=2.4.0-6+deb9u3 -y
 mkdir -p /root/.ssh/
-cp /vagrant/{id_rsa,id_rsa.pub} /root/.ssh/
+cp /vagrant/files/{id_rsa,id_rsa.pub} /root/.ssh/
 chmod 644 /root/.ssh/id_rsa.pub
 chmod 600 /root/.ssh/id_rsa
 chmod 700 /root/.ssh
 cat /root/.ssh/id_rsa.pub > /root/.ssh/authorized_keys
+cp /vagrant/files/config /root/.ssh/config
 SHELL
 
 $custom_client = <<-SHELL
-cp /vagrant/client.conf /etc/openvpn/
-sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $NF}')"'/' /etc/openvpn/client.conf
+cp /vagrant/files/client.conf /etc/openvpn/client/$(hostname).conf
+cat
+sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $NF}')"'/' /etc/openvpn/client/$(hostname).conf
+sed -i -e 's/_HOSTNAME_/'"$(hostname)"'/' /etc/openvpn/client/$(hostname).conf
+rsync -avu -P vpn-hub:/usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,`hostname`.{crt,key}} /etc/openvpn/client/
 systemctl daemon-reload 
+systemctl restart openvpn-client@$(hostname).service
 SHELL
 
 $custom_server = <<-SHELL
-cp /vagrant/server.conf /etc/openvpn/
-sed -i -e 's/_IP_/'"$(hostname -I | awk '{print $NF}')"'/' /etc/openvpn/server.conf
+cp /vagrant/files/server.conf /etc/openvpn/server/
+sed -i -e 's/_IP_/'"$(hostname -I | awk '{print $NF}')"'/' /etc/openvpn/server/server.conf
 systemctl daemon-reload 
 cd /usr/share/easy-rsa/ && . vars && ./clean-all && ln -s openssl-1.0.0.cnf openssl.cnf \
   && ./build-dh && ./pkitool --initca && ./pkitool --server vpn-hub
 
-cp /usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,vpn-hub.{crt,key}} /etc/openvpn/
+cp /usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,vpn-hub.{crt,key}} /etc/openvpn/server/
+for node in site{1,2} client
+do
+  cd /usr/share/easy-rsa/ && . vars && ./pkitool $node
+done
+systemctl daemon-reload 
+systemctl restart openvpn-server@server.service
 SHELL
 
 vm_box ="debian/stretch64"
@@ -56,13 +66,14 @@ Vagrant.configure("2") do |config|
       preserve_order:true,
       inline:$custom_server,
       run: "once"
+    #vpn.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
   
 
-  config.vm.define "site-1" do |site1|
+  config.vm.define "site1" do |site1|
     site1.vm.box=vm_box
     site1.vm.network "private_network", ip:"192.168.101.20", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
-    site1.vm.hostname = "site-1"
+    site1.vm.hostname = "site1"
     site1.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site1.vm.hostname
       vbox_conf.cpus = 1
@@ -81,12 +92,13 @@ Vagrant.configure("2") do |config|
       preserve_order:true,
       inline: $custom_client,
       run: "once"
+    #site1.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
   
-  config.vm.define "site-2" do |site2|
+  config.vm.define "site2" do |site2|
     site2.vm.box=vm_box
     site2.vm.network "private_network", ip:"192.168.101.30", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
-    site2.vm.hostname = "site-2"
+    site2.vm.hostname = "site2"
     site2.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site2.vm.hostname
       vbox_conf.cpus = 1
@@ -97,6 +109,7 @@ Vagrant.configure("2") do |config|
     end
     site2.vm.provision "shell", inline: $init_script, run: "once"
     site2.vm.provision "shell", inline: $custom_client, run: "once"
+    #site2.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
 
     config.vm.define "client" do |client|
@@ -113,6 +126,7 @@ Vagrant.configure("2") do |config|
     end
     client.vm.provision "shell", inline: $init_script, run: "once"
     client.vm.provision "shell", inline: $custom_client, run: "once"
+    #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
 
 
@@ -130,3 +144,4 @@ Vagrant.configure("2") do |config|
   #   apt-get install -y apache2
   # SHELL
 end
+

@@ -1,0 +1,19 @@
+Host vpn-hub
+	User root
+	Hostname 192.168.101.10
+	StrictHostKeyChecking no
+
+Host site1
+	User root
+	Hostname 192.168.101.20
+	StrictHostKeyChecking no
+
+Host site2
+	User root
+	Hostname 192.168.101.30
+	StrictHostKeyChecking no
+
+Host client
+	User root
+	Hostname 192.168.101.40
+	StrictHostKeyChecking no
