@@ -1,4 +1,4 @@
-# -*- mode: ruby -*-
+  # -*- mode: ruby -*-
 # vi: set ft=ruby :
 #system("openvpn --genkey --secret openvpn_key.key;done")
 system("if [ ! -e ./files/id_rsa ]; then ssh-keygen -f ./files/id_rsa  -N ''; fi ;")
@@ -19,7 +19,7 @@ SHELL
 $custom_client = <<-SHELL
 cp /vagrant/files/client.conf /etc/openvpn/client/$(hostname).conf
 cat
-sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $NF}')"'/' /etc/openvpn/client/$(hostname).conf
+sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $2}')"'/' /etc/openvpn/client/$(hostname).conf
 sed -i -e 's/_HOSTNAME_/'"$(hostname)"'/' /etc/openvpn/client/$(hostname).conf
 rsync -avu -P vpn-hub:/usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,`hostname`.{crt,key}} /etc/openvpn/client/
 systemctl daemon-reload 
@@ -28,7 +28,7 @@ SHELL
 
 $custom_server = <<-SHELL
 cp /vagrant/files/server.conf /etc/openvpn/server/
-sed -i -e 's/_IP_/'"$(hostname -I | awk '{print $NF}')"'/' /etc/openvpn/server/server.conf
+sed -i -e 's/_IP_/'"$(hostname -I | awk '{print $2}')"'/' /etc/openvpn/server/server.conf
 systemctl daemon-reload 
 cd /usr/share/easy-rsa/ && . vars && ./clean-all && ln -s openssl-1.0.0.cnf openssl.cnf \
   && ./build-dh && ./pkitool --initca && ./pkitool --server vpn-hub
@@ -41,13 +41,20 @@ done
 systemctl daemon-reload 
 systemctl restart openvpn-server@server.service
 SHELL
+$finnish = <<-SHELL
+apt-get install bird -y
+cp /vagrant/files/bird.conf /etc/bird/bird.conf
+sed -i -e "s/_IP_/`hostname -I | awk '{print $NF}'`/g"  /etc/bird/bird.conf 
+systemctl restart bird.service
+SHELL
 
 vm_box ="debian/stretch64"
 Vagrant.configure("2") do |config|
   config.vm.define "vpn-hub" do |vpn|
     vpn.vm.box=vm_box
-    vpn.vm.network "private_network", ip:"192.168.101.10", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
     vpn.vm.hostname = "vpn-hub"
+    vpn.vm.network "private_network", ip:"192.168.101.10", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
+    vpn.vm.network "private_network", ip:"192.168.201.1", netmask: "255.255.255.0", virtualbox__intnet: vpn.vm.hostname
     vpn.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = vpn.vm.hostname
       vbox_conf.cpus = 1
@@ -66,14 +73,20 @@ Vagrant.configure("2") do |config|
       preserve_order:true,
       inline:$custom_server,
       run: "once"
+    vpn.vm.provision "finnish", 
+      type:"shell",
+      preserve_order:true,
+      inline:$finnish,
+      run: "once"
     #vpn.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
   
 
   config.vm.define "site1" do |site1|
     site1.vm.box=vm_box
-    site1.vm.network "private_network", ip:"192.168.101.20", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
     site1.vm.hostname = "site1"
+    site1.vm.network "private_network", ip:"192.168.101.20", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
+    site1.vm.network "private_network", ip:"192.168.202.1", netmask: "255.255.255.0", virtualbox__intnet: site1.vm.hostname
     site1.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site1.vm.hostname
       vbox_conf.cpus = 1
@@ -92,13 +105,19 @@ Vagrant.configure("2") do |config|
       preserve_order:true,
       inline: $custom_client,
       run: "once"
+    site1.vm.provision "finnish", 
+      type:"shell",
+      preserve_order:true,
+      inline:$finnish,
+      run: "once"
     #site1.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
   
   config.vm.define "site2" do |site2|
     site2.vm.box=vm_box
-    site2.vm.network "private_network", ip:"192.168.101.30", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
     site2.vm.hostname = "site2"
+    site2.vm.network "private_network", ip:"192.168.101.30", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
+    site2.vm.network "private_network", ip:"192.168.203.1", netmask: "255.255.255.0", virtualbox__intnet: site2.vm.hostname
     site2.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site2.vm.hostname
       vbox_conf.cpus = 1
@@ -109,6 +128,7 @@ Vagrant.configure("2") do |config|
     end
     site2.vm.provision "shell", inline: $init_script, run: "once"
     site2.vm.provision "shell", inline: $custom_client, run: "once"
+    site2.vm.provision "shell", inline: $finnish, run: "once"
     #site2.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
 
@@ -126,6 +146,7 @@ Vagrant.configure("2") do |config|
     end
     client.vm.provision "shell", inline: $init_script, run: "once"
     client.vm.provision "shell", inline: $custom_client, run: "once"
+    client.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
 
