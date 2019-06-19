@@ -5,8 +5,10 @@ system("if [ ! -e ./files/id_rsa ]; then ssh-keygen -f ./files/id_rsa  -N ''; fi
 #puts system(`pwd`)
 $init_script = <<-SHELL
 export DEBIAN_FRONTEND=noninteractive;
+echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+sysctl -p /etc/sysctl.conf
 apt-get update;
-apt-get install tcpdump=4.9.2-1~deb9u1 vim=2:8.0.0197-4+deb9u1 openvpn=2.4.0-6+deb9u3 -y
+apt-get install tcpdump vim openvpn -y
 mkdir -p /root/.ssh/
 cp /vagrant/files/{id_rsa,id_rsa.pub} /root/.ssh/
 chmod 644 /root/.ssh/id_rsa.pub
