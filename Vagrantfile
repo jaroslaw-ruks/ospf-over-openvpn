@@ -6,7 +6,7 @@ system("if [ ! -e ./files/id_rsa ]; then ssh-keygen -f ./files/id_rsa  -N ''; fi
 $init_script = <<-SHELL
 export DEBIAN_FRONTEND=noninteractive;
 apt-get update;
-apt-get install tcpdump=4.9.2-1~deb9u1 vim=2:8.0.0197-4+deb9u1 openvpn=2.4.0-6+deb9u3 -y
+apt-get install tcpdump vim openvpn -y
 mkdir -p /root/.ssh/
 cp /vagrant/files/{id_rsa,id_rsa.pub} /root/.ssh/
 chmod 644 /root/.ssh/id_rsa.pub
@@ -18,12 +18,15 @@ SHELL
 
 $custom_client = <<-SHELL
 cp /vagrant/files/client.conf /etc/openvpn/client/$(hostname).conf
-cat
 sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $2}')"'/' /etc/openvpn/client/$(hostname).conf
 sed -i -e 's/_HOSTNAME_/'"$(hostname)"'/' /etc/openvpn/client/$(hostname).conf
 rsync -avu -P vpn-hub:/usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,`hostname`.{crt,key}} /etc/openvpn/client/
 systemctl daemon-reload 
 systemctl restart openvpn-client@$(hostname).service
+SHELL
+
+$custom_l2 = <<-SHELL
+ip route add 192.168.101.0/24 via 192.168.202.1 dev eth1 
 SHELL
 
 $custom_server = <<-SHELL
@@ -34,7 +37,7 @@ cd /usr/share/easy-rsa/ && . vars && ./clean-all && ln -s openssl-1.0.0.cnf open
   && ./build-dh && ./pkitool --initca && ./pkitool --server vpn-hub
 
 cp /usr/share/easy-rsa/keys/{dh2048.pem,ca.crt,vpn-hub.{crt,key}} /etc/openvpn/server/
-for node in site{1,2} client
+for node in site{11,2} client
 do
   cd /usr/share/easy-rsa/ && . vars && ./pkitool $node
 done
@@ -46,6 +49,12 @@ apt-get install bird -y
 cp /vagrant/files/bird.conf /etc/bird/bird.conf
 sed -i -e "s/_IP_/`hostname -I | awk '{print $NF}'`/g"  /etc/bird/bird.conf 
 systemctl restart bird.service
+SHELL
+
+$custom_router = <<-SHELL
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+iptables -A FORWARD -i eth1 -o eth2 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth2 -o eth1 -j ACCEPT
 SHELL
 
 vm_box ="debian/stretch64"
@@ -75,7 +84,7 @@ Vagrant.configure("2") do |config|
       run: "once"
     vpn.vm.provision "finnish", 
       type:"shell",
-      preserve_order:true,
+     preserve_order:true,
       inline:$finnish,
       run: "once"
     #vpn.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
@@ -100,19 +109,56 @@ Vagrant.configure("2") do |config|
       preserve_order:true, 
       inline: $init_script,
       run: "once"
-    site1.vm.provision "custom_client", 
+    site1.vm.provision "custom_router", 
       type:"shell",
       preserve_order:true,
       inline: $custom_client,
       run: "once"
-    site1.vm.provision "finnish", 
+    #site1.vm.provision "finnish", 
+    #  type:"shell",
+    #  preserve_order:true,
+    #  inline:$finnish,
+    #  run: "once"
+    #site1.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
+  end
+
+    config.vm.define "site11" do |site11|
+    site11.vm.box=vm_box
+    site11.vm.hostname = "site11"
+    site11.vm.network "private_network", ip:"192.168.202.2", netmask: "255.255.255.0", virtualbox__intnet: "site1"
+    site11.vm.network "private_network", ip:"192.168.212.1", netmask: "255.255.255.0", virtualbox__intnet: site11.vm.hostname
+    site11.vm.provider "virtualbox" do  |vbox_conf|
+      vbox_conf.name = site11.vm.hostname
+      vbox_conf.cpus = 1
+      vbox_conf.memory = 512
+      vbox_conf.gui = false
+      vbox_conf.customize ["storageattach", :id, "--storagectl", "SATA Controller", "--port", "0", "--device", "0", "--nonrotational", "on"]
+      vbox_conf.customize ["modifyvm",:id,"--groups","/ospf-over-openvpn"]
+    end
+    site11.vm.provision "custom_l2",
+      type:"shell",
+      preserve_order:true,
+      inline:$custom_l2,
+      run: "once"
+    #site11.vm.provision "init_script",
+    #  type:"shell", 
+    #  preserve_order:true, 
+    #  inline: $init_script,
+    #  run: "once"
+    #site11.vm.provision "custom_client", 
+    #  type:"shell",
+    #  preserve_order:true,
+    #  inline: $custom_client,
+    #  run: "once"
+
+    site11.vm.provision "finnish", 
       type:"shell",
       preserve_order:true,
       inline:$finnish,
       run: "once"
     #site1.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-  
+
   config.vm.define "site2" do |site2|
     site2.vm.box=vm_box
     site2.vm.hostname = "site2"

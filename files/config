@@ -17,3 +17,8 @@ Host client
 	User root
 	Hostname 192.168.101.40
 	StrictHostKeyChecking no
+
+Host site11
+	User root
+	Hostname 192.168.202.2
+	StrictHostKeyChecking no
