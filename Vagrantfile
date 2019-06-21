@@ -88,7 +88,7 @@ Vagrant.configure("2") do |config|
     site1.vm.box=vm_box
     site1.vm.hostname = "site1"
     site1.vm.network "private_network", ip:"192.168.101.20", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
-    site1.vm.network "private_network", ip:"192.168.202.1", netmask: "255.255.255.0", virtualbox__intnet: site1.vm.hostname
+    site1.vm.network "private_network", ip:"192.168.221.1", netmask: "255.255.255.0", virtualbox__intnet: site1.vm.hostname
     site1.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site1.vm.hostname
       vbox_conf.cpus = 1
@@ -119,7 +119,7 @@ Vagrant.configure("2") do |config|
     site2.vm.box=vm_box
     site2.vm.hostname = "site2"
     site2.vm.network "private_network", ip:"192.168.101.30", netmask: "255.255.255.0", virtualbox__intnet: "ospf-over-openvpn"
-    site2.vm.network "private_network", ip:"192.168.203.1", netmask: "255.255.255.0", virtualbox__intnet: site2.vm.hostname
+    site2.vm.network "private_network", ip:"192.168.231.1", netmask: "255.255.255.0", virtualbox__intnet: site2.vm.hostname
     site2.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site2.vm.hostname
       vbox_conf.cpus = 1
