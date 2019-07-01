@@ -143,26 +143,6 @@ Vagrant.configure("2") do |config|
       run: "once"
     #site1.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-  
-  config.vm.define "site2" do |site2|
-    site2.vm.box=vm_box
-    site2.vm.hostname = "site2"
-    site2.vm.network "private_network", ip:"192.168.111.30", netmask: "255.255.255.0", virtualbox__intnet: "public"
-    site2.vm.network "private_network", ip:"192.168.221.10", netmask: "255.255.255.0", virtualbox__intnet: "site2-internal"
-    site2.vm.provider "virtualbox" do  |vbox_conf|
-      vbox_conf.name = site2.vm.hostname
-      vbox_conf.cpus = 1
-      vbox_conf.memory = 512
-      vbox_conf.gui = false
-      vbox_conf.customize ["storageattach", :id, "--storagectl", "SATA Controller", "--port", "0", "--device", "0", "--nonrotational", "on"]
-      vbox_conf.customize ["modifyvm",:id,"--groups","/ospf-over-openvpn"]
-    end
-    site2.vm.provision "shell", inline: $init_script, run: "once"
-    site2.vm.provision "shell", inline: $custom_site, run: "once"
-    
-    #site2.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
-  end
-
     config.vm.define "client1" do |client1|
     client1.vm.box=vm_box
     client1.vm.network "private_network", ip:"192.168.211.20", netmask: "255.255.255.0", virtualbox__intnet: "site1-internal"
@@ -181,7 +161,25 @@ Vagrant.configure("2") do |config|
     client1.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-
+=begin 
+  config.vm.define "site2" do |site2|
+    site2.vm.box=vm_box
+    site2.vm.hostname = "site2"
+    site2.vm.network "private_network", ip:"192.168.111.30", netmask: "255.255.255.0", virtualbox__intnet: "public"
+    site2.vm.network "private_network", ip:"192.168.221.10", netmask: "255.255.255.0", virtualbox__intnet: "site2-internal"
+    site2.vm.provider "virtualbox" do  |vbox_conf|
+      vbox_conf.name = site2.vm.hostname
+      vbox_conf.cpus = 1
+      vbox_conf.memory = 512
+      vbox_conf.gui = false
+      vbox_conf.customize ["storageattach", :id, "--storagectl", "SATA Controller", "--port", "0", "--device", "0", "--nonrotational", "on"]
+      vbox_conf.customize ["modifyvm",:id,"--groups","/ospf-over-openvpn"]
+    end
+    site2.vm.provision "shell", inline: $init_script, run: "once"
+    site2.vm.provision "shell", inline: $custom_site, run: "once"
+    
+    #site2.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
+  end
     config.vm.define "client2" do |client2|
     client2.vm.box=vm_box
     client2.vm.network "private_network", ip:"192.168.221.20", netmask: "255.255.255.0", virtualbox__intnet: "site2-internal"
@@ -199,19 +197,6 @@ Vagrant.configure("2") do |config|
     client2.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-
-  # config.vm.network "private_network", ip: "192.168.33.10"
-  # config.vm.network "public_network"
-
-  # config.vm.synced_folder "../data", "/vagrant_data"
-
-  # config.vm.provider "virtualbox" do |vb|
-  #   vb.gui = true
-  #   vb.memory = "1024"
-  # end
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   apt-get update
-  #   apt-get install -y apache2
-  # SHELL
+=end
 end
 
