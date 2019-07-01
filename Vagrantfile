@@ -16,10 +16,17 @@ cp /vagrant/files/config /root/.ssh/config
 SHELL
 
 $custom_site = <<-SHELL
+internal=eth2
+external=eth1
+
+/sbin/iptables -t nat -A POSTROUTING -o $external -j MASQUERADE
+/sbin/iptables -A FORWARD -i $external -o $internal -m state --state RELATED,ESTABLISHED -j ACCEPT
+/sbin/iptables -A FORWARD -i $internal -o $external -j ACCEPT
 
 SHELL
 
 $custom_client = <<-SHELL
+ip route add 192.168.111.0/24 via $(hostname -I |awk '{print $2}' | sed 's/20/10/g')
 apt-get install openvpn -y
 cp /vagrant/files/client.conf /etc/openvpn/client/$(hostname).conf
 sed -i -e 's/_IP_/'"$(hostname -I |awk -F. '{print $2}')"'/' /etc/openvpn/client/$(hostname).conf
@@ -68,7 +75,7 @@ if  [[ $conf == 1 ]]
     cp /vagrant/files/vpn/{dh2048.pem,ca.crt,vpn-hub.{key,crt}} /etc/openvpn/server/
 fi 
 systemctl daemon-reload 
-#systemctl restart openvpn-server@server.service
+systemctl restart openvpn-server@server.service
 SHELL
 
 $finnish = <<-SHELL
