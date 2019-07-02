@@ -1,5 +1,8 @@
   # -*- mode: ruby -*-
 # vi: set ft=ruby :
+public_network = "public"
+site1_network = "site1"
+site2_network = "site2"
 $init_script = <<-SHELL
 export DEBIAN_FRONTEND=noninteractive;
 echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
@@ -90,7 +93,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "vpn-hub" do |vpn|
     vpn.vm.box=vm_box
     vpn.vm.hostname = "vpn-hub"
-    vpn.vm.network "private_network", ip:"192.168.111.10", netmask: "255.255.255.0", virtualbox__intnet: "public"
+    vpn.vm.network "private_network", ip:"192.168.111.10", netmask: "255.255.255.0", virtualbox__intnet: public_network
     vpn.vm.network "private_network", ip:"192.168.201.10", netmask: "255.255.255.0", virtualbox__intnet: vpn.vm.hostname
     vpn.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = vpn.vm.hostname
@@ -121,8 +124,8 @@ Vagrant.configure("2") do |config|
   config.vm.define "site1" do |site1|
     site1.vm.box=vm_box
     site1.vm.hostname = "site1"
-    site1.vm.network "private_network", ip:"192.168.111.20", netmask: "255.255.255.0", virtualbox__intnet: "public"
-    site1.vm.network "private_network", ip:"192.168.211.10", netmask: "255.255.255.0", virtualbox__intnet: "site1-internal"
+    site1.vm.network "private_network", ip:"192.168.111.20", netmask: "255.255.255.0", virtualbox__intnet: public_network
+    site1.vm.network "private_network", ip:"192.168.211.10", netmask: "255.255.255.0", virtualbox__intnet: site1_network
     site1.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site1.vm.hostname
       vbox_conf.cpus = 1
@@ -145,8 +148,8 @@ Vagrant.configure("2") do |config|
   end
     config.vm.define "client1" do |client1|
     client1.vm.box=vm_box
-    client1.vm.network "private_network", ip:"192.168.211.20", netmask: "255.255.255.0", virtualbox__intnet: "site1-internal"
-    client1.vm.network "private_network", ip:"192.168.212.10", netmask: "255.255.255.0", virtualbox__intnet:  "client1"
+    client1.vm.network "private_network", ip:"192.168.211.20", netmask: "255.255.255.0", virtualbox__intnet: site1_network
+    client1.vm.network "private_network", ip:"192.168.212.10", netmask: "255.255.255.0", virtualbox__intnet: "client1"
     client1.vm.hostname = "client1"
     client1.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = client1.vm.hostname
@@ -165,8 +168,8 @@ Vagrant.configure("2") do |config|
   config.vm.define "site2" do |site2|
     site2.vm.box=vm_box
     site2.vm.hostname = "site2"
-    site2.vm.network "private_network", ip:"192.168.111.30", netmask: "255.255.255.0", virtualbox__intnet: "public"
-    site2.vm.network "private_network", ip:"192.168.221.10", netmask: "255.255.255.0", virtualbox__intnet: "site2-internal"
+    site2.vm.network "private_network", ip:"192.168.111.30", netmask: "255.255.255.0", virtualbox__intnet: public_network
+    site2.vm.network "private_network", ip:"192.168.221.10", netmask: "255.255.255.0", virtualbox__intnet: site2_network
     site2.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = site2.vm.hostname
       vbox_conf.cpus = 1
@@ -182,7 +185,7 @@ Vagrant.configure("2") do |config|
   end
     config.vm.define "client2" do |client2|
     client2.vm.box=vm_box
-    client2.vm.network "private_network", ip:"192.168.221.20", netmask: "255.255.255.0", virtualbox__intnet: "site2-internal"
+    client2.vm.network "private_network", ip:"192.168.221.20", netmask: "255.255.255.0", virtualbox__intnet: site2_network
     client2.vm.hostname = "client2"
     client2.vm.provider "virtualbox" do  |vbox_conf|
       vbox_conf.name = client2.vm.hostname
@@ -199,4 +202,5 @@ Vagrant.configure("2") do |config|
   end
 #=end
 end
+
 

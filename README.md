@@ -10,8 +10,18 @@ without passing traffic. More generic and autodetec configuration then better :)
 
 ![alt pic/Network_Schema.dia](pic/Network_Schema.png)
 
+### Idea
 
-It use tap and broadcast.
+Use bird to "autodetect" another networks, make it quite secure (Openvpn). Make it easy, repeatable and generic. 
+
+- 1 public IP address (VPN-HUB)
+- rest of node can be hidden by nat
+- create configration for endpoint: only import networks, don't inform rest about endpoint network configuration.
+
+### Current State
+Openvpn use TAP 
+OSPF have broadcast connection.
 
 To do:
-use tun and ptmp ospf connection
+- Change Openvpn to TUN and OSPF into PTMP instead Broadcast connection.
+- Include init.sh script into Vagrant file (one command for pull setup)
