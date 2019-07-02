@@ -10,3 +10,8 @@ without passing traffic. More generic and autodetec configuration then better :)
 
 ![alt pic/Network_Schema.dia](pic/Network_Schema.png)
 
+
+It use tap and broadcast.
+
+To do:
+use tun and ptmp ospf connection
