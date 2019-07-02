@@ -161,7 +161,7 @@ Vagrant.configure("2") do |config|
     client1.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-=begin 
+#=begin 
   config.vm.define "site2" do |site2|
     site2.vm.box=vm_box
     site2.vm.hostname = "site2"
@@ -197,6 +197,6 @@ Vagrant.configure("2") do |config|
     client2.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-=end
+#=end
 end
 
