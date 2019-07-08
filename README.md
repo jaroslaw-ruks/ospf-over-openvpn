@@ -18,10 +18,16 @@ Use bird to "autodetect" another networks, make it quite secure (Openvpn). Make 
 - rest of node can be hidden by nat
 - create configration for endpoint: only import networks, don't inform rest about endpoint network configuration.
 
+## Important information
+- Check bird configuration, vpn-hub with single publick IP address have a additional rule, all bird client with public IP require this rule.
+
 ### Current State
 Openvpn use TAP 
 OSPF have broadcast connection.
 
 To do:
 - Change Openvpn to TUN and OSPF into PTMP instead Broadcast connection.
+   -  there is some issue with OSPF and tun. I stay in tap. 
+   - https://gitlab.labs.nic.cz/labs/bird/wikis/FAQ
 - Include init.sh script into Vagrant file (one command for pull setup)
+

@@ -83,7 +83,13 @@ SHELL
 
 $finnish = <<-SHELL
 apt-get install bird -y
-cp /vagrant/files/bird.conf /etc/bird/bird.conf
+ if [[ `hostname` == 'vpn-hub' ]]
+  then
+    cp /vagrant/files/bird_server.conf /etc/bird/bird.conf
+    sed -i -e "s/_PUBLIC_IP_WITH_NET_MASK/`hostname -I | awk '{print $2}'`/g"  /etc/bird/bird.conf     
+  else
+    cp /vagrant/files/bird.conf /etc/bird/bird.conf
+  fi
 sed -i -e "s/_IP_/`hostname -I | awk '{print $NF}'`/g"  /etc/bird/bird.conf 
 systemctl restart bird.service
 SHELL
@@ -164,7 +170,6 @@ Vagrant.configure("2") do |config|
     client1.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-#=begin 
   config.vm.define "site2" do |site2|
     site2.vm.box=vm_box
     site2.vm.hostname = "site2"
@@ -200,7 +205,4 @@ Vagrant.configure("2") do |config|
     client2.vm.provision "shell", inline: $finnish, run: "once"
     #client.vm.provision "file", source: "./files/config", destination: "/root/.ssh/config"
   end
-#=end
 end
-
-
